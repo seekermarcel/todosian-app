@@ -1,0 +1,8 @@
+Todosian Fork, based on Todosian 2.2.
+
+• New home: Today, Week and Lists tabs (with Tasks plugin support on)
+• Lists grouped by folder with note icons; empty notes hidden, paused projects folded
+• Repeat picker for recurring tasks
+• Contexts: tags like #kontext/zuhause as labels, filters and in the editor
+• Labels for custom statuses; long-press the checkbox to change status
+• Fixed: tasks with 🏁 delete now recur; tags between dates no longer hide due dates

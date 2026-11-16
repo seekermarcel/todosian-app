@@ -1,17 +1,32 @@
 [
   {
-    "versionCode": 1002,
-    "versionName": "2.2-fork.2",
+    "versionCode": 1003,
+    "versionName": "2.2-fork.3",
     "items": [
       {
         "icon": "FilterCenterFocus",
-        "title": "Ignore Folders and Files",
-        "description": "Settings → Storage → Ignored folders and files: hide templates, archives or drawings with simple patterns like _templates/ or *.excalidraw.md."
+        "title": "Today, Week and Lists",
+        "description": "With Tasks plugin support on, the app opens on Today: overdue and today's tasks, ready to tick off. Week shows the rest of the week by day, Lists your notes grouped by folder."
       },
       {
-        "icon": "Speed",
-        "title": "Faster Scans",
-        "description": "Ignored folders are skipped entirely, so large archives no longer slow down loading."
+        "icon": "SwapVert",
+        "title": "Repeat Picker",
+        "description": "Set how a task repeats with a few taps: every day, week, month or year, on chosen weekdays, from when it's done, and delete when done."
+      },
+      {
+        "icon": "Stars",
+        "title": "Contexts",
+        "description": "Tags like #kontext/zuhause show as labels, filter Today, Week and lists, and can be picked in the editor. Set the tag in Settings → Task markers."
+      },
+      {
+        "icon": "Checklist",
+        "title": "Status Labels",
+        "description": "Name your custom statuses, e.g. w as Waiting, and long-press the checkbox to change a status."
+      },
+      {
+        "icon": "BugReport",
+        "title": "Recurring Tasks Fixed",
+        "description": "Tasks with 🏁 delete now recur, and tags between dates no longer hide a task's due date."
       }
     ]
   }
