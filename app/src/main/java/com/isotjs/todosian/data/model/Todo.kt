@@ -36,6 +36,7 @@ data class Todo(
     val createdDate: String? = null, // ➕ YYYY-MM-DD
     val priority: TasksPriority? = null,
     val recurrence: String? = null, // 🔁 <text>
+    val onCompletion: String? = null, // 🏁 keep|delete
     val status: Char = if (isDone) 'x' else ' ', // the character between the brackets
 ) {
     /** Earliest of the due and scheduled dates: the day Daily Focus treats the task as due. */

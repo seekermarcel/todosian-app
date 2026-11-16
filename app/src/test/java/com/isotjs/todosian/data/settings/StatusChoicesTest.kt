@@ -17,4 +17,13 @@ class StatusChoicesTest {
             AppSettings(customStatuses = "/ w s - x ] w").statusChoices(),
         )
     }
+
+    @Test
+    fun statusLabelsReadsOneLabelPerLineAndSkipsBlankOnes() {
+        assertEquals(
+            mapOf('w' to "Wartet", '/' to "In Arbeit"),
+            AppSettings(customStatusLabels = "wWartet\n/ In Arbeit \ns\n\n-   ").statusLabels(),
+        )
+        assertEquals(emptyMap<Char, String>(), AppSettings().statusLabels())
+    }
 }

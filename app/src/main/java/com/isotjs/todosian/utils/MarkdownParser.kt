@@ -18,11 +18,19 @@ data class TaskMarkers(
     }
 }
 
+private const val ON_COMPLETION_MARKER = "🏁"
+private const val ON_COMPLETION_DELETE = "delete"
+
 object MarkdownParser {
     // Any single status character counts, like the Obsidian Tasks plugin's custom statuses.
     private val todoRegex = Regex("""^([ \t]*)- \[([^\]])\] (.*)$""")
 
     private val prioritySuffixRegex = Regex("""\s(🔺|⏫|🔼|🔽|⏬️?|⏬)\s*$""")
+
+    // Obsidian Tasks "on completion" field; the plugin only defines keep and delete.
+    private val onCompletionSuffixRegex = Regex("""\s🏁\s*(keep|delete)\s*$""", RegexOption.IGNORE_CASE)
+
+    private val tagSuffixRegex = Regex("""\s#[^\s#]+\s*$""")
 
     private fun dateSuffixRegex(marker: String) =
         Regex("""\s${Regex.escape(marker)}\s*(\d{4}-\d{2}-\d{2})\s*$""")
@@ -57,6 +65,7 @@ object MarkdownParser {
                 createdDate = parsed.meta.createdDate,
                 priority = parsed.meta.priority,
                 recurrence = parsed.meta.recurrence,
+                onCompletion = parsed.meta.onCompletion,
             )
         }
     }
@@ -106,9 +115,8 @@ object MarkdownParser {
 
         if (becomesDone && enableTasksPlugin) {
             val parsed = parseRemainder(remainder, markers)
-            val rule = parsed.meta.recurrence
-            if (!rule.isNullOrBlank()) {
-                val nextLine = buildRecurredTaskLine(
+            val nextLine = parsed.meta.recurrence?.takeIf { it.isNotBlank() }?.let { rule ->
+                buildRecurredTaskLine(
                     indentPrefix = indentPrefix,
                     taskText = parsed.mainText,
                     originalMeta = parsed.meta,
@@ -116,10 +124,14 @@ object MarkdownParser {
                     today = today,
                     markers = markers,
                 )
-                if (nextLine != null) {
-                    return updatedLines.toMutableList().apply {
-                        add(lineIndex, nextLine)
-                    }
+            }
+            // 🏁 delete drops the finished line like Obsidian Tasks does, unless subtasks would lose their parent.
+            val deleteDone = parsed.meta.onCompletion.equals(ON_COMPLETION_DELETE, ignoreCase = true) &&
+                !hasSubtasks(lines, lineIndex)
+            if (nextLine != null || deleteDone) {
+                return updatedLines.toMutableList().apply {
+                    if (deleteDone) removeAt(lineIndex)
+                    if (nextLine != null) add(lineIndex, nextLine)
                 }
             }
         }
@@ -172,6 +184,21 @@ object MarkdownParser {
             if (lines[i] == "---") return i + 1
         }
         return 0
+    }
+
+    /**
+     * Returns the value of the top-level YAML frontmatter property [key] (case-insensitive),
+     * with surrounding quotes removed, or null when it is missing or blank.
+     */
+    fun frontmatterValue(lines: List<String>, key: String): String? {
+        val end = frontmatterEndIndex(lines)
+        if (end == 0) return null
+        return lines.subList(1, end - 1).firstNotNullOfOrNull { line ->
+            val separator = line.indexOf(':')
+            if (separator <= 0 || line[0].isWhitespace()) return@firstNotNullOfOrNull null
+            if (!line.substring(0, separator).trim().equals(key, ignoreCase = true)) return@firstNotNullOfOrNull null
+            line.substring(separator + 1).trim().removeSurrounding("\"").removeSurrounding("'").trim()
+        }?.takeIf { it.isNotEmpty() }
     }
 
     fun addSubTodo(
@@ -395,6 +422,7 @@ object MarkdownParser {
             createdDate = if (originalMeta.createdDate != null) today.toString() else null,
             priority = originalMeta.priority,
             recurrence = originalMeta.recurrence,
+            onCompletion = originalMeta.onCompletion,
         )
 
         return buildString {
@@ -462,6 +490,8 @@ object MarkdownParser {
         val createdDate: String? = null,
         val priority: TasksPriority? = null,
         val recurrence: String? = null,
+        /** Obsidian Tasks on-completion action (`🏁 keep` or `🏁 delete`). */
+        val onCompletion: String? = null,
     ) {
         fun toSuffixString(markers: TaskMarkers = TaskMarkers.Default): String {
             val parts = ArrayList<String>(8)
@@ -471,6 +501,7 @@ object MarkdownParser {
             if (dueDate != null) parts.add("${markers.due} $dueDate")
             if (completionDate != null) parts.add("${markers.done} $completionDate")
             if (!recurrence.isNullOrBlank()) parts.add("${markers.recurrence} ${recurrence.trim()}")
+            if (!onCompletion.isNullOrBlank()) parts.add("$ON_COMPLETION_MARKER ${onCompletion.trim()}")
             val prio = priority
             if (prio != null && prio != TasksPriority.NONE) {
                 parts.add(priorityToEmoji(prio))
@@ -503,66 +534,46 @@ object MarkdownParser {
         var createdDate: String? = null
         var priority: TasksPriority? = null
         var recurrence: String? = null
+        var onCompletion: String? = null
+
+        // Tags found while peeling fields off the end. Tags that sit between fields move into the
+        // description (as in Obsidian Tasks); tags left of every field stay exactly as written.
+        var beforeTags: String? = null
+        val pendingTags = mutableListOf<String>()
+        val movedTags = mutableListOf<String>()
+
+        fun peel(match: MatchResult) {
+            suffixParts.add(0, working.substring(match.range.first))
+            working = working.substring(0, match.range.first).trimEnd()
+            movedTags.addAll(0, pendingTags)
+            pendingTags.clear()
+            beforeTags = null
+        }
 
         while (true) {
-            val completion = completionRegex.find(working)
-            if (completion != null) {
-                completionDate = completion.groupValues[1]
-                suffixParts.add(0, working.substring(completion.range.first))
-                working = working.substring(0, completion.range.first).trimEnd()
+            completionRegex.find(working)?.let { completionDate = it.groupValues[1]; peel(it); continue }
+            dueRegex.find(working)?.let { dueDate = it.groupValues[1]; peel(it); continue }
+            startRegex.find(working)?.let { startDate = it.groupValues[1]; peel(it); continue }
+            scheduledRegex.find(working)?.let { scheduledDate = it.groupValues[1]; peel(it); continue }
+            createdRegex.find(working)?.let { createdDate = it.groupValues[1]; peel(it); continue }
+            prioritySuffixRegex.find(working)?.let { priority = emojiToPriority(it.groupValues[1]); peel(it); continue }
+            onCompletionSuffixRegex.find(working)?.let { onCompletion = it.groupValues[1].lowercase(); peel(it); continue }
+
+            val tag = tagSuffixRegex.find(working)
+            if (tag != null) {
+                if (beforeTags == null) beforeTags = working
+                pendingTags.add(0, working.substring(tag.range.first).trim())
+                working = working.substring(0, tag.range.first).trimEnd()
                 continue
             }
 
-            val due = dueRegex.find(working)
-            if (due != null) {
-                dueDate = due.groupValues[1]
-                suffixParts.add(0, working.substring(due.range.first))
-                working = working.substring(0, due.range.first).trimEnd()
-                continue
-            }
-
-            val start = startRegex.find(working)
-            if (start != null) {
-                startDate = start.groupValues[1]
-                suffixParts.add(0, working.substring(start.range.first))
-                working = working.substring(0, start.range.first).trimEnd()
-                continue
-            }
-
-            val scheduled = scheduledRegex.find(working)
-            if (scheduled != null) {
-                scheduledDate = scheduled.groupValues[1]
-                suffixParts.add(0, working.substring(scheduled.range.first))
-                working = working.substring(0, scheduled.range.first).trimEnd()
-                continue
-            }
-
-            val created = createdRegex.find(working)
-            if (created != null) {
-                createdDate = created.groupValues[1]
-                suffixParts.add(0, working.substring(created.range.first))
-                working = working.substring(0, created.range.first).trimEnd()
-                continue
-            }
-
-            val prio = prioritySuffixRegex.find(working)
-            if (prio != null) {
-                priority = emojiToPriority(prio.groupValues[1])
-                suffixParts.add(0, working.substring(prio.range.first))
-                working = working.substring(0, prio.range.first).trimEnd()
-                continue
-            }
-
-            val recur = recurrenceRegex.find(working)
-            if (recur != null) {
-                recurrence = recur.groupValues[1].trim()
-                suffixParts.add(0, working.substring(recur.range.first))
-                working = working.substring(0, recur.range.first).trimEnd()
-                continue
-            }
+            // Last: the rule runs to the end of the line, so every other field must be peeled first.
+            recurrenceRegex.find(working)?.let { recurrence = it.groupValues[1].trim(); peel(it); continue }
 
             break
         }
+        beforeTags?.let { working = it }
+        if (movedTags.isNotEmpty()) working = (listOf(working.trimEnd()) + movedTags).joinToString(" ")
 
         return ParsedRemainder(
             mainText = working.trimEnd(),
@@ -575,6 +586,7 @@ object MarkdownParser {
                 createdDate = createdDate,
                 priority = priority,
                 recurrence = recurrence,
+                onCompletion = onCompletion,
             ),
         )
     }

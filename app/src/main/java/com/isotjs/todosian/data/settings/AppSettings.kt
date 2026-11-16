@@ -1,11 +1,11 @@
 package com.isotjs.todosian.data.settings
 
+import com.isotjs.todosian.utils.ContextTags
 import com.isotjs.todosian.utils.TaskMarkers
 
 data class AppSettings(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val dynamicColorEnabled: Boolean = true,
-    val showDailyFocus: Boolean = true,
     val dailyFocusMode: DailyFocusMode = DailyFocusMode.TODAY,
     val categorySort: CategorySort = CategorySort.A_Z,
     val todoGrouping: TodoGrouping = TodoGrouping.GROUPED,
@@ -20,9 +20,15 @@ data class AppSettings(
     val doneMarker: String? = null,
     val recurrenceMarker: String? = null,
     val customStatuses: String? = null,
+    /** One line per labelled status: the status character followed by its label, e.g. "wWartet". */
+    val customStatusLabels: String? = null,
     val enableSubtasks: Boolean = false,
     val includeSubfolders: Boolean = false,
     val ignoredPaths: String? = null,
+    /** Tag prefix that marks a GTD context, e.g. "#kontext/"; blank means [ContextTags.DEFAULT_PREFIX]. */
+    val contextTagPrefix: String? = null,
+    /** The context Today, Week and lists are filtered to, or null for all tasks. */
+    val activeContext: String? = null,
     val reminderTimeHour: Int = 19,
     val reminderTimeMinute: Int = 0,
 ) {
@@ -40,7 +46,19 @@ data class AppSettings(
     fun statusChoices(): List<Char> =
         (listOf(' ', 'x') + customStatuses.orEmpty().filterNot { it.isWhitespace() || it == ']' }.toList())
             .distinct()
+
+    fun contextPrefix(): String = ContextTags.normalizePrefix(contextTagPrefix)
+
+    /** Labels the user gave their custom status characters. */
+    fun statusLabels(): Map<Char, String> =
+        customStatusLabels.orEmpty().lines()
+            .filter { it.length > 1 }
+            .associate { it[0] to it.substring(1).trim() }
+            .filterValues { it.isNotEmpty() }
 }
+
+/** A custom status as edited in Settings: its character (if typed yet) and an optional label. */
+data class CustomStatus(val char: Char?, val label: String)
 
 enum class DailyFocusMode {
     TODAY,

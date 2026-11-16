@@ -23,7 +23,6 @@ import com.isotjs.todosian.data.PreferencesManager
 import com.isotjs.todosian.data.settings.AppSettingsRepository
 import com.isotjs.todosian.ui.addtask.AddTaskScreen
 import com.isotjs.todosian.ui.category.CategoryScreen
-import com.isotjs.todosian.ui.dailyfocus.DailyFocusScreen
 import com.isotjs.todosian.ui.home.HomeScreen
 import com.isotjs.todosian.ui.onboarding.OnboardingScreen
 import com.isotjs.todosian.ui.settings.SettingsScreen
@@ -137,8 +136,8 @@ fun TodosianApp(
                 onOpenSettings = {
                     navController.navigate(Routes.Settings)
                 },
-                onOpenDailyFocus = {
-                    navController.navigate(Routes.DailyFocus)
+                onAddTask = {
+                    navController.navigate(Routes.AddTask)
                 },
                 refreshSignal = refreshSignal,
                 onRequireOnboarding = {
@@ -214,14 +213,6 @@ fun TodosianApp(
                 },
             )
         }
-
-        composable(Routes.DailyFocus) {
-            DailyFocusScreen(
-                fileRepository = fileRepository,
-                appSettingsRepository = appSettingsRepository,
-                onBack = { navController.popBackStack() },
-            )
-        }
     }
 }
 
@@ -231,7 +222,6 @@ object Routes {
     const val Onboarding = "onboarding"
     const val Home = "home"
     const val Settings = "settings"
-    const val DailyFocus = "daily_focus"
     const val AddTask = "add_task"
 
     const val ARG_CATEGORY_URI = "categoryUri"

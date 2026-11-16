@@ -11,6 +11,7 @@ import android.util.Log
 import androidx.documentfile.provider.DocumentFile
 import com.isotjs.todosian.data.model.Category
 import com.isotjs.todosian.data.settings.AppSettingsRepository
+import com.isotjs.todosian.utils.ContextTags
 import com.isotjs.todosian.utils.MarkdownParser
 import com.isotjs.todosian.utils.TaskMarkers
 import kotlinx.coroutines.CoroutineScope
@@ -62,6 +63,9 @@ interface FileRepository {
     suspend fun persistFolderUri(uri: Uri): Result<Unit>
 
     suspend fun getCategories(markers: TaskMarkers = TaskMarkers.Default): Result<List<Category>>
+
+    /** Every context tagged on a task anywhere in the folder, sorted by name. */
+    suspend fun getContexts(prefix: String): List<String>
 
     suspend fun readLines(uri: Uri): Result<List<String>>
 
@@ -192,11 +196,28 @@ class SafFileRepository(
                             doneCount = doneCount,
                             dueTodayCount = dueTodayCount,
                             overdueCount = overdueCount,
+                            icon = MarkdownParser.frontmatterValue(lines, "icon"),
+                            status = MarkdownParser.frontmatterValue(lines, "status"),
                         )
                     }
                     .sortedBy { it.displayName.lowercase() }
                     .toList()
             }
+        }
+    }
+
+    override suspend fun getContexts(prefix: String): List<String> {
+        val folderUri = getFolderUri() ?: return emptyList()
+        return withContext(Dispatchers.IO) {
+            runCatching {
+                scanFolder(folderUri).files
+                    .flatMap { file ->
+                        MarkdownParser.parse(readLinesInternal(file.ref))
+                            .flatMap { ContextTags.contextsIn(it.text, prefix) }
+                    }
+                    .distinctBy { it.lowercase() }
+                    .sortedBy { it.lowercase() }
+            }.getOrDefault(emptyList())
         }
     }
 

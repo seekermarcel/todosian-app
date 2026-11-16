@@ -112,6 +112,12 @@ import com.isotjs.todosian.data.settings.AppSettings
 import com.isotjs.todosian.data.settings.AppSettingsRepository
 import com.isotjs.todosian.data.settings.CategorySort
 import com.isotjs.todosian.data.settings.DailyFocusMode
+import com.isotjs.todosian.data.settings.CustomStatus
+import com.isotjs.todosian.utils.ContextTags
+import androidx.compose.foundation.layout.width
+import androidx.compose.runtime.toMutableStateList
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import com.isotjs.todosian.data.settings.NewTodoFilePosition
 import com.isotjs.todosian.data.settings.ThemeMode
 import com.isotjs.todosian.data.settings.TodoGrouping
@@ -557,29 +563,12 @@ fun SettingsScreen(
 
                 item {
                     SettingsGroup(title = stringResource(R.string.settings_behaviour)) {
-                        SettingsSwitchRow(
+                        SettingsNavRow(
                             icon = Icons.Filled.Info,
-                            title = stringResource(R.string.settings_show_daily_focus),
-                            subtitle = stringResource(R.string.settings_show_daily_focus_subtitle),
-                            checked = settings.showDailyFocus,
-                            onCheckedChange = { appSettingsRepository.setShowDailyFocus(it) },
+                            title = stringResource(R.string.settings_daily_focus_mode),
+                            subtitle = dailyFocusModeLabel(settings.dailyFocusMode),
+                            onClick = { showDailyFocusModeDialog = true },
                         )
-
-                        AnimatedVisibility(
-                            visible = settings.showDailyFocus,
-                            enter = fadeIn(tween(180)) + expandVertically(tween(220)),
-                            exit = fadeOut(tween(140)) + shrinkVertically(tween(200)),
-                        ) {
-                            Column {
-                                SettingsDivider()
-                                SettingsNavRow(
-                                    icon = Icons.Filled.Info,
-                                    title = stringResource(R.string.settings_daily_focus_mode),
-                                    subtitle = dailyFocusModeLabel(settings.dailyFocusMode),
-                                    onClick = { showDailyFocusModeDialog = true },
-                                )
-                            }
-                        }
 
                         SettingsDivider()
 
@@ -976,11 +965,15 @@ private fun TaskMarkersSheet(
                 onValueChange = { appSettingsRepository.setRecurrenceMarker(it) },
             )
             SettingsTextFieldRow(
-                label = stringResource(R.string.settings_custom_statuses),
-                value = settings.customStatuses.orEmpty(),
-                placeholder = stringResource(R.string.settings_custom_statuses_example),
-                supporting = stringResource(R.string.settings_custom_statuses_hint),
-                onValueChange = { appSettingsRepository.setCustomStatuses(it) },
+                label = stringResource(R.string.settings_context_tag),
+                value = settings.contextTagPrefix.orEmpty(),
+                placeholder = ContextTags.DEFAULT_PREFIX,
+                supporting = stringResource(R.string.settings_context_tag_hint),
+                onValueChange = { appSettingsRepository.setContextTagPrefix(it) },
+            )
+            CustomStatusesEditor(
+                settings = settings,
+                onChange = { appSettingsRepository.setCustomStatuses(it) },
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -997,6 +990,77 @@ private fun TaskMarkersSheet(
             ) {
                 Text(text = stringResource(R.string.action_ok))
             }
+        }
+    }
+}
+
+/** One row per custom status: its character, an optional label, and a remove button. */
+@Composable
+private fun CustomStatusesEditor(
+    settings: AppSettings,
+    onChange: (List<CustomStatus>) -> Unit,
+) {
+    // Seeded once per sheet; rows without a character yet only live here until one is typed.
+    val rows = remember {
+        val labels = settings.statusLabels()
+        settings.statusChoices()
+            .filterNot { it == ' ' || it == 'x' }
+            .map { CustomStatus(char = it, label = labels[it].orEmpty()) }
+            .toMutableStateList()
+    }
+    fun update(change: () -> Unit) {
+        change()
+        onChange(rows.toList())
+    }
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+    ) {
+        Text(
+            text = stringResource(R.string.settings_custom_statuses),
+            style = MaterialTheme.typography.titleMedium,
+        )
+        Text(
+            text = stringResource(R.string.settings_custom_statuses_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        rows.forEachIndexed { index, status ->
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                OutlinedTextField(
+                    value = status.char?.toString().orEmpty(),
+                    onValueChange = { input ->
+                        // A status is one character; keep the last one typed, never brackets or spaces.
+                        val char = input.lastOrNull { !it.isWhitespace() && it != '[' && it != ']' }
+                        update { rows[index] = status.copy(char = char) }
+                    },
+                    label = { Text(text = stringResource(R.string.settings_custom_status_char)) },
+                    singleLine = true,
+                    modifier = Modifier.width(80.dp),
+                )
+                OutlinedTextField(
+                    value = status.label,
+                    onValueChange = { label -> update { rows[index] = status.copy(label = label) } },
+                    label = { Text(text = stringResource(R.string.settings_custom_status_label)) },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f),
+                )
+                IconButton(onClick = { update { rows.removeAt(index) } }) {
+                    Icon(
+                        imageVector = Icons.Filled.Close,
+                        contentDescription = stringResource(R.string.cd_remove_status),
+                    )
+                }
+            }
+        }
+        TextButton(onClick = { rows.add(CustomStatus(char = null, label = "")) }) {
+            Icon(imageVector = Icons.Filled.Add, contentDescription = null)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(text = stringResource(R.string.settings_custom_status_add))
         }
     }
 }

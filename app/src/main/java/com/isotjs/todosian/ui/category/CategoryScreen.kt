@@ -74,7 +74,11 @@ import com.isotjs.todosian.data.settings.AppSettingsRepository
 import com.isotjs.todosian.data.settings.NewTodoFilePosition
 import com.isotjs.todosian.data.settings.TodoGrouping
 import com.isotjs.todosian.data.settings.TodoSort
+import com.isotjs.todosian.ui.components.ContextFilterRow
+import com.isotjs.todosian.ui.components.ContextPicker
 import com.isotjs.todosian.ui.components.TasksMetaEditor
+import com.isotjs.todosian.ui.components.rememberVaultContexts
+import com.isotjs.todosian.utils.ContextTags
 import com.isotjs.todosian.ui.components.TodoRow
 import com.isotjs.todosian.ui.components.TodoSheetMode
 import com.isotjs.todosian.ui.components.TodosianDimens
@@ -122,6 +126,7 @@ fun CategoryScreen(
         initialValue = com.isotjs.todosian.data.settings.AppSettings(),
     )
     val statusChoices = remember(settings.customStatuses) { settings.statusChoices() }
+    val statusLabels = remember(settings.customStatusLabels) { settings.statusLabels() }
 
     val resources = LocalResources.current
     val snackbarHostState = remember { SnackbarHostState() }
@@ -142,6 +147,16 @@ fun CategoryScreen(
     var sheetMode by remember { mutableStateOf<TodoSheetMode?>(null) }
     var sheetText by remember { mutableStateOf("") }
     var sheetMeta by remember { mutableStateOf(MarkdownParser.TasksMeta()) }
+    var sheetContexts by remember { mutableStateOf(emptyList<String>()) }
+    val contextPrefix = settings.contextPrefix()
+    // New tasks start in the context the user is filtered to; edits load theirs in onEdit.
+    LaunchedEffect(sheetMode) {
+        when (sheetMode) {
+            TodoSheetMode.Add, TodoSheetMode.AddSubtask -> sheetContexts = listOfNotNull(settings.activeContext)
+            null -> sheetContexts = emptyList()
+            is TodoSheetMode.Edit -> Unit
+        }
+    }
     var sheetParentTodo by remember { mutableStateOf<Todo?>(null) }
     var deleteTodoTarget by remember { mutableStateOf<Todo?>(null) }
     var deleteTodoHasSubtasks by remember { mutableStateOf(false) }
@@ -217,6 +232,13 @@ fun CategoryScreen(
                         },
                 )
 
+                Spacer(modifier = Modifier.height(12.dp))
+                ContextPicker(
+                    selected = sheetContexts,
+                    known = rememberVaultContexts(fileRepository, contextPrefix),
+                    onChange = { sheetContexts = it },
+                )
+
                 if (settings.enableTasksPluginSupport) {
                     Spacer(modifier = Modifier.height(12.dp))
                     TasksMetaEditor(
@@ -255,7 +277,7 @@ fun CategoryScreen(
                         onClick = {
                             when (val mode = sheetMode) {
                                 TodoSheetMode.Add -> viewModel.addTodo(
-                                    text = sheetText,
+                                    text = ContextTags.withContexts(sheetText, contextPrefix, sheetContexts),
                                     meta = if (settings.enableTasksPluginSupport) sheetMeta else null,
                                     enableTasksPluginSupport = settings.enableTasksPluginSupport,
                                     addAtStart = settings.newTodoFilePosition == NewTodoFilePosition.TOP,
@@ -263,7 +285,7 @@ fun CategoryScreen(
 
                                 is TodoSheetMode.Edit -> viewModel.editTodo(
                                     todo = mode.todo,
-                                    newText = sheetText,
+                                    newText = ContextTags.withContexts(sheetText, contextPrefix, sheetContexts),
                                     meta = if (settings.enableTasksPluginSupport) sheetMeta else null,
                                     enableTasksPluginSupport = settings.enableTasksPluginSupport,
                                 )
@@ -273,7 +295,7 @@ fun CategoryScreen(
                                     if (parent != null) {
                                         viewModel.addSubTodo(
                                             parent = parent,
-                                            text = sheetText,
+                                            text = ContextTags.withContexts(sheetText, contextPrefix, sheetContexts),
                                             meta = if (settings.enableTasksPluginSupport) sheetMeta else null,
                                             enableTasksPluginSupport = settings.enableTasksPluginSupport,
                                         )
@@ -521,21 +543,47 @@ fun CategoryScreen(
                     }
                 }
             } else {
-                val sortedActiveTodos = remember(uiState.activeTodos, settings.todoSort) {
-                    sortTodos(uiState.activeTodos, settings.todoSort)
+                val activeContext = settings.activeContext
+                fun inContext(todos: List<Todo>): List<Todo> =
+                    if (activeContext == null) {
+                        todos
+                    } else {
+                        todos.filter { ContextTags.hasContext(it.text, contextPrefix, activeContext) }
+                    }
+                val sortedActiveTodos = remember(uiState.activeTodos, settings.todoSort, activeContext, contextPrefix) {
+                    sortTodos(inContext(uiState.activeTodos), settings.todoSort)
                 }
-                val sortedCompletedTodos = remember(uiState.completedTodos, settings.todoSort) {
-                    sortTodos(uiState.completedTodos, settings.todoSort)
+                val sortedCompletedTodos = remember(uiState.completedTodos, settings.todoSort, activeContext, contextPrefix) {
+                    sortTodos(inContext(uiState.completedTodos), settings.todoSort)
                 }
                 val sortedAllTodos = remember(
                     uiState.activeTodos,
                     uiState.completedTodos,
                     settings.todoSort,
+                    activeContext,
+                    contextPrefix,
                 ) {
-                    sortTodos(uiState.activeTodos + uiState.completedTodos, settings.todoSort)
+                    sortTodos(inContext(uiState.activeTodos + uiState.completedTodos), settings.todoSort)
+                }
+                // Chips for this list's contexts, plus the active one so it can always be cleared.
+                val contextsHere = remember(uiState.activeTodos, uiState.completedTodos, activeContext, contextPrefix) {
+                    ((uiState.activeTodos + uiState.completedTodos).flatMap { ContextTags.contextsIn(it.text, contextPrefix) } +
+                        listOfNotNull(activeContext))
+                        .distinctBy { it.lowercase() }
+                        .sortedBy { it.lowercase() }
                 }
 
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    if (contextsHere.isNotEmpty()) {
+                        item(key = "contexts") {
+                            ContextFilterRow(
+                                contexts = contextsHere,
+                                active = activeContext,
+                                onSelect = { appSettingsRepository.setActiveContext(it) },
+                                modifier = Modifier.padding(vertical = 8.dp),
+                            )
+                        }
+                    }
                     if (settings.todoGrouping == TodoGrouping.FILE_ORDER) {
                         items(
                             items = sortedAllTodos,
@@ -548,10 +596,13 @@ fun CategoryScreen(
                                 showSubtaskButton = settings.enableSubtasks,
                                 onToggle = { viewModel.toggleTodo(todo, settings.enableTasksPluginSupport) },
                                 statusChoices = statusChoices,
+                                statusLabels = statusLabels,
+                                contextPrefix = contextPrefix,
                                 onSetStatus = { viewModel.toggleTodo(todo, settings.enableTasksPluginSupport, it) },
                                 onEdit = {
                                     sheetMode = TodoSheetMode.Edit(todo)
-                                    sheetText = todo.text
+                                    sheetText = ContextTags.withoutContexts(todo.text, contextPrefix)
+                                    sheetContexts = ContextTags.contextsIn(todo.text, contextPrefix)
                                     sheetMeta = MarkdownParser.TasksMeta(
                                         dueDate = todo.dueDate,
                                         startDate = todo.startDate,
@@ -560,6 +611,7 @@ fun CategoryScreen(
                                         createdDate = todo.createdDate,
                                         priority = todo.priority,
                                         recurrence = todo.recurrence,
+                                        onCompletion = todo.onCompletion,
                                     )
                                 },
                                 onAddSubtask = {
@@ -604,10 +656,13 @@ fun CategoryScreen(
                                 showSubtaskButton = settings.enableSubtasks,
                                 onToggle = { viewModel.toggleTodo(todo, settings.enableTasksPluginSupport) },
                                 statusChoices = statusChoices,
+                                statusLabels = statusLabels,
+                                contextPrefix = contextPrefix,
                                 onSetStatus = { viewModel.toggleTodo(todo, settings.enableTasksPluginSupport, it) },
                                 onEdit = {
                                     sheetMode = TodoSheetMode.Edit(todo)
-                                    sheetText = todo.text
+                                    sheetText = ContextTags.withoutContexts(todo.text, contextPrefix)
+                                    sheetContexts = ContextTags.contextsIn(todo.text, contextPrefix)
                                     sheetMeta = MarkdownParser.TasksMeta(
                                         dueDate = todo.dueDate,
                                         startDate = todo.startDate,
@@ -616,6 +671,7 @@ fun CategoryScreen(
                                         createdDate = todo.createdDate,
                                         priority = todo.priority,
                                         recurrence = todo.recurrence,
+                                        onCompletion = todo.onCompletion,
                                     )
                                 },
                                 onAddSubtask = {
@@ -658,10 +714,13 @@ fun CategoryScreen(
                                 showSubtaskButton = settings.enableSubtasks,
                                 onToggle = { viewModel.toggleTodo(todo, settings.enableTasksPluginSupport) },
                                 statusChoices = statusChoices,
+                                statusLabels = statusLabels,
+                                contextPrefix = contextPrefix,
                                 onSetStatus = { viewModel.toggleTodo(todo, settings.enableTasksPluginSupport, it) },
                                 onEdit = {
                                     sheetMode = TodoSheetMode.Edit(todo)
-                                    sheetText = todo.text
+                                    sheetText = ContextTags.withoutContexts(todo.text, contextPrefix)
+                                    sheetContexts = ContextTags.contextsIn(todo.text, contextPrefix)
                                     sheetMeta = MarkdownParser.TasksMeta(
                                         dueDate = todo.dueDate,
                                         startDate = todo.startDate,
@@ -670,6 +729,7 @@ fun CategoryScreen(
                                         createdDate = todo.createdDate,
                                         priority = todo.priority,
                                         recurrence = todo.recurrence,
+                                        onCompletion = todo.onCompletion,
                                     )
                                 },
                                 onAddSubtask = {
