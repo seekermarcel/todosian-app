@@ -741,6 +741,32 @@ class MarkdownParserTest {
     }
 
     @Test
+    fun frontmatterValue_reads_top_level_property_case_insensitively() {
+        val lines = listOf(
+            "---",
+            "Status: Pausiert",
+            "Bereich: \"[[Wohnen]]\"",
+            "icon: 🛁",
+            "---",
+            "icon: not frontmatter",
+        )
+
+        assertEquals("🛁", MarkdownParser.frontmatterValue(lines, "icon"))
+        assertEquals("Pausiert", MarkdownParser.frontmatterValue(lines, "status"))
+        assertEquals("[[Wohnen]]", MarkdownParser.frontmatterValue(lines, "Bereich"))
+    }
+
+    @Test
+    fun frontmatterValue_returns_null_for_missing_blank_nested_or_unclosed() {
+        val withFrontmatter = listOf("---", "Start: ", "tags:", "  icon: 🛁", "---")
+        assertEquals(null, MarkdownParser.frontmatterValue(withFrontmatter, "start"))
+        assertEquals(null, MarkdownParser.frontmatterValue(withFrontmatter, "icon"))
+        assertEquals(null, MarkdownParser.frontmatterValue(listOf("---", "icon: 🛁"), "icon"))
+        assertEquals(null, MarkdownParser.frontmatterValue(listOf("icon: 🛁"), "icon"))
+        assertEquals(null, MarkdownParser.frontmatterValue(emptyList(), "icon"))
+    }
+
+    @Test
     fun parse_reads_on_completion_separately_from_recurrence() {
         val todo = MarkdownParser.parse(
             listOf("- [ ] Einkaufen #kontext/unterwegs 🔁 every week when done 🏁 delete 📅 2026-11-23"),

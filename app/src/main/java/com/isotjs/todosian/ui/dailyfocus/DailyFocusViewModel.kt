@@ -24,7 +24,11 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.temporal.TemporalAdjusters
+import java.time.temporal.WeekFields
+import java.util.Locale
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -45,6 +49,7 @@ data class DailyFocusUiState(
 class DailyFocusViewModel(
     private val fileRepository: FileRepository,
     val mode: DailyFocusMode,
+    val range: AgendaRange,
     val enableTasksPluginSupport: Boolean,
     private val appSettingsRepository: AppSettingsRepository,
 ) : ViewModel() {
@@ -87,7 +92,7 @@ class DailyFocusViewModel(
                 _uiState.value = _uiState.value.copy(isLoading = true)
             }
 
-            val today = LocalDate.now().toString()
+            val today = LocalDate.now()
             val categoriesResult = fileRepository.getCategories(markers)
             if (categoriesResult.isFailure) {
                 _uiState.value = DailyFocusUiState(isLoading = false)
@@ -110,7 +115,7 @@ class DailyFocusViewModel(
 
                 MarkdownParser.parse(lines, markers)
                     .filter { !it.isDone }
-                    .filter { todo -> matchesFocusMode(todo, mode, today) }
+                    .filter { todo -> matchesAgenda(todo, range, mode, today, firstDayOfWeek()) }
                     .forEach { todo ->
                         tasks.add(
                             DailyFocusTask(
@@ -250,7 +255,7 @@ class DailyFocusViewModel(
 
     // Replicates the logic from refreshFromDisk but only for a single file, used for optimistic updates after mutations.
     private fun applyLines(categoryUri: Uri, newLines: List<String>, markers: TaskMarkers) {
-        val today = LocalDate.now().toString()
+        val today = LocalDate.now()
         val current = _uiState.value
         val uriKey = categoryUri.toString()
 
@@ -265,7 +270,7 @@ class DailyFocusViewModel(
 
             MarkdownParser.parse(lines, markers)
                 .filter { !it.isDone }
-                .filter { todo -> matchesFocusMode(todo, mode, today) }
+                .filter { todo -> matchesAgenda(todo, range, mode, today, firstDayOfWeek()) }
                 .forEach { todo ->
                     tasks.add(
                         DailyFocusTask(
@@ -291,11 +296,43 @@ class DailyFocusViewModel(
     }
 }
 
-private fun matchesFocusMode(todo: Todo, mode: DailyFocusMode, today: String): Boolean {
-    return when (mode) {
-        DailyFocusMode.TODAY -> todo.focusDate == today
-        DailyFocusMode.OVERDUE -> todo.focusDate?.let { it < today } == true
-        DailyFocusMode.TODAY_AND_OVERDUE -> todo.focusDate?.let { it <= today } == true
+/** Which days a task list covers: today (per the focus mode), or the rest of this and next week. */
+enum class AgendaRange { TODAY, WEEK }
+
+// Custom statuses like waiting [w] or someday [s] are parked, not actionable on a given day.
+private val AGENDA_STATUSES = setOf(' ', '/')
+
+internal fun firstDayOfWeek(): DayOfWeek = WeekFields.of(Locale.getDefault()).firstDayOfWeek
+
+/** Last day of the calendar week that contains [date]. */
+internal fun endOfWeek(date: LocalDate, firstDayOfWeek: DayOfWeek): LocalDate =
+    date.with(TemporalAdjusters.nextOrSame(firstDayOfWeek.minus(1)))
+
+/**
+ * WEEK covers tomorrow through the end of next week: the screen shows this week by day
+ * and only counts next week's tasks.
+ */
+internal fun matchesAgenda(
+    todo: Todo,
+    range: AgendaRange,
+    mode: DailyFocusMode,
+    today: LocalDate,
+    firstDayOfWeek: DayOfWeek,
+): Boolean {
+    if (todo.status !in AGENDA_STATUSES) return false
+    // ISO dates compare correctly as strings.
+    val date = todo.focusDate ?: return false
+    val todayKey = today.toString()
+    return when (range) {
+        AgendaRange.TODAY -> when (mode) {
+            DailyFocusMode.TODAY -> date == todayKey
+            DailyFocusMode.OVERDUE -> date < todayKey
+            DailyFocusMode.TODAY_AND_OVERDUE -> date <= todayKey
+        }
+        AgendaRange.WEEK -> {
+            val endOfNextWeek = endOfWeek(endOfWeek(today, firstDayOfWeek).plusDays(1), firstDayOfWeek)
+            date > todayKey && date <= endOfNextWeek.toString()
+        }
     }
 }
 

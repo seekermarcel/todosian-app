@@ -58,6 +58,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.state.ToggleableState
+import androidx.compose.ui.semantics.toggleableState
+import androidx.compose.ui.semantics.Role
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -70,6 +74,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.isotjs.todosian.R
+import com.isotjs.todosian.utils.ContextTags
 import com.isotjs.todosian.data.model.TasksPriority
 import com.isotjs.todosian.data.model.Todo
 import com.isotjs.todosian.utils.MarkdownParser
@@ -91,8 +96,19 @@ fun TodoRow(
     allowMove: Boolean = onRequestMove != null,
     showSubtaskButton: Boolean = true,
     statusChoices: List<Char> = emptyList(),
+    statusLabels: Map<Char, String> = emptyMap(),
     onSetStatus: (Char) -> Unit = {},
+    supportingText: String? = null,
+    containerColor: Color = MaterialTheme.colorScheme.surfaceContainer,
+    /** When set, context tags with this prefix show as labels instead of in the task text. */
+    contextPrefix: String? = null,
 ) {
+    val contexts = remember(todo.text, contextPrefix) {
+        contextPrefix?.let { ContextTags.contextsIn(todo.text, it) }.orEmpty()
+    }
+    val displayText = remember(todo.text, contextPrefix) {
+        contextPrefix?.let { ContextTags.withoutContexts(todo.text, it) } ?: todo.text
+    }
     // Open and done are always in the list; the menu only adds value once custom statuses exist.
     val canSetStatus = statusChoices.size > 2
     var showStatusMenu by remember { mutableStateOf(false) }
@@ -130,7 +146,7 @@ fun TodoRow(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(
-                        color = MaterialTheme.colorScheme.surfaceContainer,
+                        color = containerColor,
                         shape = rowShape,
                     )
                     .clip(rowShape)
@@ -144,10 +160,33 @@ fun TodoRow(
                     )
                     .padding(horizontal = 12.dp, vertical = 10.dp),
             ) {
-                Checkbox(
-                    checked = todo.isDone,
-                    onCheckedChange = { onToggle() },
-                )
+                // The checkbox only draws; this box handles tap (toggle) and long-press (status menu).
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .minimumInteractiveComponentSize()
+                        .clip(CircleShape)
+                        .combinedClickable(
+                            role = Role.Checkbox,
+                            onClick = onToggle,
+                            onLongClick = if (canSetStatus) {
+                                { showStatusMenu = true }
+                            } else {
+                                null
+                            },
+                            onLongClickLabel = if (canSetStatus) {
+                                stringResource(R.string.cd_change_status)
+                            } else {
+                                null
+                            },
+                        )
+                        .semantics { toggleableState = ToggleableState(todo.isDone) },
+                ) {
+                    Checkbox(
+                        checked = todo.isDone,
+                        onCheckedChange = null,
+                    )
+                }
                 if (canSetStatus) {
                     DropdownMenu(
                         expanded = showStatusMenu,
@@ -155,7 +194,7 @@ fun TodoRow(
                     ) {
                         statusChoices.forEach { status ->
                             DropdownMenuItem(
-                                text = { Text(text = statusLabel(status)) },
+                                text = { Text(text = statusLabels[status] ?: statusLabel(status)) },
                                 onClick = {
                                     showStatusMenu = false
                                     onSetStatus(status)
@@ -190,9 +229,10 @@ fun TodoRow(
                             )
                         }
                         if (todo.status !in DEFAULT_STATUSES) {
-                            val statusDescription = stringResource(R.string.cd_todo_status, todo.status.toString())
+                            val statusText = statusLabels[todo.status] ?: todo.status.toString()
+                            val statusDescription = stringResource(R.string.cd_todo_status, statusText)
                             Text(
-                                text = todo.status.toString(),
+                                text = statusText,
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSecondaryContainer,
                                 modifier = Modifier
@@ -205,11 +245,34 @@ fun TodoRow(
                             )
                         }
                         Text(
-                            text = todo.text,
+                            text = displayText,
                             style = MaterialTheme.typography.bodyLarge,
                             textDecoration = if (todo.isDone) TextDecoration.LineThrough else TextDecoration.None,
                             color = textColor,
                         )
+                    }
+
+                    if (supportingText != null || contexts.isNotEmpty()) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            if (supportingText != null) {
+                                Text(
+                                    text = supportingText,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f, fill = false),
+                                )
+                            }
+                            contexts.forEach { context ->
+                                Text(
+                                    text = "@" + ContextTags.displayName(context),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    maxLines = 1,
+                                )
+                            }
+                        }
                     }
 
                     if (enableTasksPluginSupport) {
@@ -424,22 +487,18 @@ fun TasksMetaEditor(
             useEmojisInUi = useEmojisInUi,
         )
 
-        OutlinedTextField(
-            value = meta.recurrence.orEmpty(),
-            onValueChange = { value ->
-                onMetaChange(meta.copy(recurrence = value.ifBlank { null }))
+        RepeatField(
+            recurrence = meta.recurrence,
+            onCompletion = meta.onCompletion,
+            label = if (useEmojisInUi) {
+                stringResource(R.string.category_tasks_recurrence)
+            } else {
+                stringResource(R.string.category_tasks_recurrence_label)
             },
-            singleLine = true,
-            label = {
-                Text(
-                    text = if (useEmojisInUi) {
-                        stringResource(R.string.category_tasks_recurrence)
-                    } else {
-                        stringResource(R.string.category_tasks_recurrence_label)
-                    },
-                )
+            onChange = { recurrence, onCompletion ->
+                onMetaChange(meta.copy(recurrence = recurrence, onCompletion = onCompletion))
             },
-            modifier = modifier.fillMaxWidth(),
+            modifier = modifier,
         )
     }
 }

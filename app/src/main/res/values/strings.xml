@@ -11,21 +11,34 @@
 
     <!-- Home -->
     <string name="home_title">Todosian</string>
-    <string name="home_daily_focus_title">Daily focus</string>
-    <plurals name="home_daily_focus_subtitle_today">
-        <item quantity="one">%1$d task due today</item>
-        <item quantity="other">%1$d tasks due today</item>
+    <string name="home_tab_today">Today</string>
+    <string name="home_tab_lists">Lists</string>
+    <string name="home_tab_week">Week</string>
+    <string name="week_title">This week</string>
+    <string name="week_tomorrow">Tomorrow</string>
+    <string name="week_date_range">%1$s to %2$s</string>
+    <string name="week_empty_title">Nothing else this week</string>
+    <string name="week_empty_subtitle">Tasks due or scheduled for the rest of the week show up here.</string>
+    <plurals name="week_next_week_count">
+        <item quantity="one">Next week: %1$d task</item>
+        <item quantity="other">Next week: %1$d tasks</item>
     </plurals>
-    <plurals name="home_daily_focus_subtitle_overdue">
-        <item quantity="one">%1$d overdue task</item>
-        <item quantity="other">%1$d overdue tasks</item>
+    <plurals name="today_subtitle">
+        <item quantity="one">%1$s, %2$d task today</item>
+        <item quantity="other">%1$s, %2$d tasks today</item>
     </plurals>
-    <plurals name="home_daily_focus_subtitle_today_overdue">
-        <item quantity="one">%1$d task due today or overdue</item>
-        <item quantity="other">%1$d tasks due today or overdue</item>
+    <plurals name="today_overdue_count">
+        <item quantity="one">%1$d overdue</item>
+        <item quantity="other">%1$d overdue</item>
+    </plurals>
+    <plurals name="lists_paused_count">
+        <item quantity="one">%1$d paused</item>
+        <item quantity="other">%1$d paused</item>
     </plurals>
     <string name="home_empty_title">No categories yet</string>
     <string name="home_empty_subtitle">Create a category or choose a different folder.</string>
+    <string name="lists_all_empty_title">No tasks in your lists</string>
+    <string name="lists_all_empty_subtitle">Lists without tasks are hidden. Create a list to add tasks to it.</string>
     <string name="home_create_category">Create category</string>
     <string name="home_new_category_title">New category</string>
     <string name="home_new_category_hint">Category name</string>
@@ -71,14 +84,51 @@
     <string name="category_tasks_scheduled">⏳ Scheduled</string>
     <string name="category_tasks_done">✅ Done</string>
     <string name="category_tasks_priority">Priority</string>
-    <string name="category_tasks_recurrence">🔁 Recurrence</string>
+    <string name="category_tasks_recurrence">🔁 Repeat</string>
 
     <string name="category_tasks_created_label">Created</string>
     <string name="category_tasks_due_label">Due</string>
     <string name="category_tasks_start_label">Start</string>
     <string name="category_tasks_scheduled_label">Scheduled</string>
     <string name="category_tasks_done_label">Done</string>
-    <string name="category_tasks_recurrence_label">Recurrence</string>
+    <string name="category_tasks_recurrence_label">Repeat</string>
+    <string name="repeat_title">Repeat</string>
+    <string name="repeat_never">Never</string>
+    <string name="repeat_unit_day">Day</string>
+    <string name="repeat_unit_week">Week</string>
+    <string name="repeat_unit_month">Month</string>
+    <string name="repeat_unit_year">Year</string>
+    <string name="repeat_every">Every</string>
+    <plurals name="repeat_days">
+        <item quantity="one">day</item>
+        <item quantity="other">days</item>
+    </plurals>
+    <plurals name="repeat_weeks">
+        <item quantity="one">week</item>
+        <item quantity="other">weeks</item>
+    </plurals>
+    <plurals name="repeat_months">
+        <item quantity="one">month</item>
+        <item quantity="other">months</item>
+    </plurals>
+    <plurals name="repeat_years">
+        <item quantity="one">year</item>
+        <item quantity="other">years</item>
+    </plurals>
+    <string name="repeat_month_same">Same day</string>
+    <string name="repeat_month_nth">Day …</string>
+    <string name="repeat_month_last">Last day</string>
+    <string name="repeat_day_of_month">Day of month</string>
+    <string name="repeat_when_done">Count from when it’s done</string>
+    <string name="repeat_when_done_hint">The next date follows the day you tick it.</string>
+    <string name="repeat_delete">Delete when done</string>
+    <string name="repeat_delete_hint">Only the next occurrence stays in the file (🏁 delete).</string>
+    <string name="repeat_deleted_when_done">Deleted when done</string>
+    <string name="repeat_preview">Writes %1$s</string>
+    <string name="repeat_preview_never">Doesn’t repeat</string>
+    <string name="repeat_type_rule">Type a rule</string>
+    <string name="repeat_done">Done</string>
+    <string name="cd_repeat_open_picker">Choose how it repeats</string>
 
     <string name="category_tasks_priority_none">None</string>
     <string name="category_tasks_priority_lowest">⏬ Lowest</string>
@@ -118,6 +168,7 @@
     <string name="cd_overflow_menu">More options</string>
     <string name="cd_add_category">Add category</string>
     <string name="cd_add_todo">Add todo</string>
+    <string name="cd_add_task">Add task</string>
     <string name="cd_add_subtask">Add subtask</string>
     <string name="cd_navigate_back">Navigate back</string>
     <string name="cd_delete">Delete</string>
@@ -175,9 +226,7 @@
     <string name="settings_dynamic_color_unavailable">Available on Android 12+ only.</string>
 
     <string name="settings_behaviour">Behaviour</string>
-    <string name="settings_show_daily_focus">Daily focus banner</string>
-    <string name="settings_show_daily_focus_subtitle">Show remaining tasks on the Home screen.</string>
-    <string name="settings_daily_focus_mode">Daily focus content</string>
+    <string name="settings_daily_focus_mode">Today tab shows</string>
     <string name="settings_daily_focus_mode_today">Today</string>
     <string name="settings_daily_focus_mode_overdue">Overdue</string>
     <string name="settings_daily_focus_mode_today_overdue">Today and overdue</string>
@@ -220,11 +269,21 @@
     <string name="settings_marker_example_done">e.g. done: 2026-05-20</string>
     <string name="settings_marker_example_recurrence">e.g. repeat: every week</string>
     <string name="settings_custom_statuses">Custom statuses</string>
-    <string name="settings_custom_statuses_example">e.g. / - w</string>
-    <string name="settings_custom_statuses_hint">Status characters offered when you long-press a task, besides open and done. x and - close a task.</string>
+    <string name="settings_custom_statuses_hint">Offered when you long-press a task or its checkbox, besides open and done. x and - close a task.</string>
+    <string name="settings_custom_status_char">Mark</string>
+    <string name="settings_custom_status_label">Label</string>
+    <string name="settings_custom_status_add">Add status</string>
+    <string name="cd_remove_status">Remove status</string>
+    <string name="settings_context_tag">Context tag</string>
+    <string name="settings_context_tag_hint">Tags starting with this are contexts. Use #kontext/ for tags like #kontext/zuhause.</string>
+    <string name="context_all">All</string>
+    <string name="context_picker_title">Context</string>
+    <string name="context_new">New context</string>
+    <string name="cd_context_add">Add context</string>
     <string name="todo_status_open">Open</string>
     <string name="todo_status_done">Done</string>
     <string name="todo_status_custom">Status [%1$s]</string>
+    <string name="cd_change_status">Change status</string>
     <string name="cd_todo_status">Status %1$s</string>
 
     <string name="settings_enable_subtasks">Enable subtasks</string>
@@ -260,9 +319,8 @@
     <string name="settings_android_sdk">Android SDK</string>
 
     <!-- Daily Focus screen -->
-    <string name="daily_focus_screen_title">Daily focus</string>
-    <string name="daily_focus_empty_title">Nothing due right now</string>
-    <string name="daily_focus_empty_subtitle">Tasks matching your focus mode will appear here.</string>
+    <string name="daily_focus_empty_title">Nothing due today</string>
+    <string name="daily_focus_empty_subtitle">Tasks with a due or scheduled date show up here on their day.</string>
 
     <!-- Changelog / What's new -->
     <string name="changelog_title">What’s new in Todosian</string>

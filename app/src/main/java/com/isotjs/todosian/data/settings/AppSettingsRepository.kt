@@ -14,7 +14,6 @@ interface AppSettingsRepository {
     fun setThemeMode(themeMode: ThemeMode)
     fun setDynamicColorEnabled(enabled: Boolean)
 
-    fun setShowDailyFocus(enabled: Boolean)
     fun setDailyFocusMode(mode: DailyFocusMode)
     fun setCategorySort(sort: CategorySort)
     fun setTodoGrouping(grouping: TodoGrouping)
@@ -37,13 +36,15 @@ interface AppSettingsRepository {
 
     fun setRecurrenceMarker(marker: String)
 
-    fun setCustomStatuses(statuses: String)
+    fun setCustomStatuses(statuses: List<CustomStatus>)
 
     fun setEnableSubtasks(enabled: Boolean)
 
     fun setIncludeSubfolders(enabled: Boolean)
 
     fun setIgnoredPaths(patterns: String)
+    fun setContextTagPrefix(prefix: String)
+    fun setActiveContext(context: String?)
 
     fun setReminderTime(hour: Int, minute: Int)
 }
@@ -77,10 +78,6 @@ class SharedPrefsAppSettingsRepository(
 
     override fun setDynamicColorEnabled(enabled: Boolean) {
         prefs.edit { putBoolean(KEY_DYNAMIC_COLOR, enabled) }
-    }
-
-    override fun setShowDailyFocus(enabled: Boolean) {
-        prefs.edit { putBoolean(KEY_SHOW_DAILY_FOCUS, enabled) }
     }
 
     override fun setDailyFocusMode(mode: DailyFocusMode) {
@@ -135,8 +132,15 @@ class SharedPrefsAppSettingsRepository(
         prefs.edit { putString(KEY_RECURRENCE_MARKER, marker.trim()) }
     }
 
-    override fun setCustomStatuses(statuses: String) {
-        prefs.edit { putString(KEY_CUSTOM_STATUSES, statuses.trim()) }
+    override fun setCustomStatuses(statuses: List<CustomStatus>) {
+        val typed = statuses.filter { it.char != null }
+        prefs.edit {
+            putString(KEY_CUSTOM_STATUSES, typed.joinToString(" ") { it.char.toString() })
+            putString(
+                KEY_CUSTOM_STATUS_LABELS,
+                typed.filter { it.label.isNotBlank() }.joinToString("\n") { "${it.char}${it.label.trim()}" },
+            )
+        }
     }
 
     override fun setEnableSubtasks(enabled: Boolean) {
@@ -149,6 +153,14 @@ class SharedPrefsAppSettingsRepository(
 
     override fun setIgnoredPaths(patterns: String) {
         prefs.edit { putString(KEY_IGNORED_PATHS, patterns.trim()) }
+    }
+
+    override fun setContextTagPrefix(prefix: String) {
+        prefs.edit { putString(KEY_CONTEXT_TAG_PREFIX, prefix.trim()) }
+    }
+
+    override fun setActiveContext(context: String?) {
+        prefs.edit { putString(KEY_ACTIVE_CONTEXT, context) }
     }
 
     override fun setReminderTime(hour: Int, minute: Int) {
@@ -182,7 +194,6 @@ class SharedPrefsAppSettingsRepository(
         return AppSettings(
             themeMode = themeMode,
             dynamicColorEnabled = prefs.getBoolean(KEY_DYNAMIC_COLOR, true),
-            showDailyFocus = prefs.getBoolean(KEY_SHOW_DAILY_FOCUS, true),
             dailyFocusMode = prefs.getString(KEY_DAILY_FOCUS_MODE, null)?.let { raw ->
                 runCatching { DailyFocusMode.valueOf(raw) }.getOrNull()
             } ?: DailyFocusMode.TODAY,
@@ -199,9 +210,12 @@ class SharedPrefsAppSettingsRepository(
             doneMarker = prefs.getString(KEY_DONE_MARKER, null)?.takeIf { it.isNotBlank() },
             recurrenceMarker = prefs.getString(KEY_RECURRENCE_MARKER, null)?.takeIf { it.isNotBlank() },
             customStatuses = prefs.getString(KEY_CUSTOM_STATUSES, null)?.takeIf { it.isNotBlank() },
+            customStatusLabels = prefs.getString(KEY_CUSTOM_STATUS_LABELS, null)?.takeIf { it.isNotBlank() },
             enableSubtasks = prefs.getBoolean(KEY_SUBTASKS, false),
             includeSubfolders = prefs.getBoolean(KEY_INCLUDE_SUBFOLDERS, false),
             ignoredPaths = prefs.getString(KEY_IGNORED_PATHS, null)?.takeIf { it.isNotBlank() },
+            contextTagPrefix = prefs.getString(KEY_CONTEXT_TAG_PREFIX, null)?.takeIf { it.isNotBlank() },
+            activeContext = prefs.getString(KEY_ACTIVE_CONTEXT, null)?.takeIf { it.isNotBlank() },
             reminderTimeHour = prefs.getInt(KEY_REMINDER_TIME_HOUR, 19),
             reminderTimeMinute = prefs.getInt(KEY_REMINDER_TIME_MINUTE, 0),
         )
@@ -212,7 +226,6 @@ class SharedPrefsAppSettingsRepository(
 
         private const val KEY_THEME_MODE = "theme_mode"
         private const val KEY_DYNAMIC_COLOR = "dynamic_color"
-        private const val KEY_SHOW_DAILY_FOCUS = "show_daily_focus"
         private const val KEY_DAILY_FOCUS_MODE = "daily_focus_mode"
         private const val KEY_CATEGORY_SORT = "category_sort"
         private const val KEY_TODO_GROUPING = "todo_grouping"
@@ -230,10 +243,13 @@ class SharedPrefsAppSettingsRepository(
         private const val KEY_DONE_MARKER = "done_marker"
         private const val KEY_RECURRENCE_MARKER = "recurrence_marker"
         private const val KEY_CUSTOM_STATUSES = "custom_statuses"
+        private const val KEY_CUSTOM_STATUS_LABELS = "custom_status_labels"
 
         private const val KEY_SUBTASKS = "enable_subtasks"
         private const val KEY_INCLUDE_SUBFOLDERS = "include_subfolders"
         private const val KEY_IGNORED_PATHS = "ignored_paths"
+        private const val KEY_CONTEXT_TAG_PREFIX = "context_tag_prefix"
+        private const val KEY_ACTIVE_CONTEXT = "active_context"
 
         private const val KEY_REMINDER_TIME_HOUR = "reminder_time_hour"
         private const val KEY_REMINDER_TIME_MINUTE = "reminder_time_minute"

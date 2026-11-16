@@ -102,6 +102,8 @@ class HomeViewModel(
                 _events.emit(Event.ShowMessage(R.string.error_write_failed))
                 return@launch
             }
+            // A new list has no tasks yet, so the Lists tab would hide it: open it instead.
+            _events.emit(Event.OpenCategory(created.getOrThrow()))
             refresh()
         }
     }
@@ -131,5 +133,6 @@ class HomeViewModel(
     sealed interface Event {
         data class ShowMessage(@param:StringRes val messageResId: Int) : Event
         data object RequireOnboarding : Event
+        data class OpenCategory(val uri: Uri) : Event
     }
 }

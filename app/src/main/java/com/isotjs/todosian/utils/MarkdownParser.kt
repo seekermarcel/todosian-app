@@ -186,6 +186,21 @@ object MarkdownParser {
         return 0
     }
 
+    /**
+     * Returns the value of the top-level YAML frontmatter property [key] (case-insensitive),
+     * with surrounding quotes removed, or null when it is missing or blank.
+     */
+    fun frontmatterValue(lines: List<String>, key: String): String? {
+        val end = frontmatterEndIndex(lines)
+        if (end == 0) return null
+        return lines.subList(1, end - 1).firstNotNullOfOrNull { line ->
+            val separator = line.indexOf(':')
+            if (separator <= 0 || line[0].isWhitespace()) return@firstNotNullOfOrNull null
+            if (!line.substring(0, separator).trim().equals(key, ignoreCase = true)) return@firstNotNullOfOrNull null
+            line.substring(separator + 1).trim().removeSurrounding("\"").removeSurrounding("'").trim()
+        }?.takeIf { it.isNotEmpty() }
+    }
+
     fun addSubTodo(
         lines: List<String>,
         parentLineIndex: Int,
