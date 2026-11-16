@@ -43,6 +43,7 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.FolderOff
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.RestartAlt
@@ -193,6 +194,7 @@ fun SettingsScreen(
     var showDailyFocusModeDialog by remember { mutableStateOf(false) }
     var showReminderTimeDialog by remember { mutableStateOf(false) }
     var showMarkersSheet by remember { mutableStateOf(false) }
+    var showIgnoredPathsDialog by remember { mutableStateOf(false) }
 
     val reminderTimeLabel = remember(settings.reminderTimeHour, settings.reminderTimeMinute) {
         LocalTime.of(settings.reminderTimeHour, settings.reminderTimeMinute)
@@ -368,6 +370,18 @@ fun SettingsScreen(
         )
     }
 
+    if (showIgnoredPathsDialog) {
+        IgnoredPathsDialog(
+            initialValue = settings.ignoredPaths.orEmpty(),
+            onSave = { patterns ->
+                appSettingsRepository.setIgnoredPaths(patterns)
+                viewModel.refreshStorageStatus()
+                showIgnoredPathsDialog = false
+            },
+            onDismiss = { showIgnoredPathsDialog = false },
+        )
+    }
+
     if (showMarkersSheet) {
         TaskMarkersSheet(
             settings = settings,
@@ -445,6 +459,21 @@ fun SettingsScreen(
                                 appSettingsRepository.setIncludeSubfolders(it)
                                 viewModel.refreshStorageStatus()
                             },
+                        )
+
+                        SettingsDivider()
+
+                        val ignoredCount = settings.ignoredPaths.orEmpty().lines()
+                            .count { it.isNotBlank() && !it.trimStart().startsWith('#') }
+                        SettingsNavRow(
+                            icon = Icons.Filled.FolderOff,
+                            title = stringResource(R.string.settings_ignored_paths),
+                            subtitle = if (ignoredCount == 0) {
+                                stringResource(R.string.settings_ignored_paths_none)
+                            } else {
+                                pluralStringResource(R.plurals.settings_ignored_paths_count, ignoredCount, ignoredCount)
+                            },
+                            onClick = { showIgnoredPathsDialog = true },
                         )
 
                         SettingsDivider()
@@ -970,6 +999,40 @@ private fun TaskMarkersSheet(
             }
         }
     }
+}
+
+@Composable
+private fun IgnoredPathsDialog(
+    initialValue: String,
+    onSave: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var value by remember { mutableStateOf(initialValue) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = stringResource(R.string.settings_ignored_paths)) },
+        text = {
+            OutlinedTextField(
+                value = value,
+                onValueChange = { value = it },
+                minLines = 4,
+                maxLines = 10,
+                placeholder = { Text(text = stringResource(R.string.settings_ignored_paths_example)) },
+                supportingText = { Text(text = stringResource(R.string.settings_ignored_paths_hint)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = { onSave(value) }) {
+                Text(text = stringResource(R.string.action_save))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = stringResource(R.string.action_cancel))
+            }
+        },
+    )
 }
 
 @Composable

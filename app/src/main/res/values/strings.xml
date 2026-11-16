@@ -144,6 +144,14 @@
     <string name="settings_reset_folder_confirm">Reset</string>
     <string name="settings_folder_updated">Folder updated.</string>
     <string name="settings_include_subfolders">Include subfolders</string>
+    <string name="settings_ignored_paths">Ignored folders and files</string>
+    <string name="settings_ignored_paths_none">None</string>
+    <plurals name="settings_ignored_paths_count">
+        <item quantity="one">%1$d pattern</item>
+        <item quantity="other">%1$d patterns</item>
+    </plurals>
+    <string name="settings_ignored_paths_example">_templates/\nArchive/\n*.excalidraw.md</string>
+    <string name="settings_ignored_paths_hint">One pattern per line. * matches within a name, ** across folders, a trailing / matches folders only.</string>
     <string name="settings_include_subfolders_subtitle">Also show notes in subfolders. Hidden folders such as .obsidian are skipped.</string>
 
     <string name="settings_status">Status</string>

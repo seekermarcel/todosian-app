@@ -16,11 +16,13 @@ internal fun isMarkdownNoteName(name: String): Boolean =
 
 /**
  * Collects the Markdown notes below [rootId], descending into subfolders when [recursive].
- * Hidden folders such as `.obsidian` and `.trash` are skipped.
+ * Hidden folders such as `.obsidian` and `.trash` are skipped, and so is anything matching [ignored];
+ * an ignored folder is never listed.
  */
 internal fun walkMarkdownTree(
     rootId: String,
     recursive: Boolean,
+    ignored: IgnoredPaths = IgnoredPaths(null),
     listChildren: (folderId: String) -> List<DocumentEntry>,
 ): MarkdownTree<String> {
     val files = mutableListOf<MarkdownEntry<String>>()
@@ -30,8 +32,10 @@ internal fun walkMarkdownTree(
         val (folderId, prefix) = pending.removeFirst()
         folderIds.add(folderId)
         for (child in listChildren(folderId)) {
+            val path = prefix + child.name
+            if (ignored.isIgnored(path, child.isDirectory)) continue
             if (child.isDirectory) {
-                if (recursive && !child.name.startsWith('.')) pending.add(child.id to "$prefix${child.name}/")
+                if (recursive && !child.name.startsWith('.')) pending.add(child.id to "$path/")
             } else if (isMarkdownNoteName(child.name)) {
                 files.add(MarkdownEntry(child.id, prefix + child.name.dropLast(MD_SUFFIX_LENGTH)))
             }
@@ -41,9 +45,14 @@ internal fun walkMarkdownTree(
 }
 
 /** SAF version of [walkMarkdownTree]: one query per folder, instead of DocumentFile's several queries per child. */
-internal fun scanMarkdownTree(context: Context, treeUri: Uri, recursive: Boolean): MarkdownTree<Uri> {
+internal fun scanMarkdownTree(
+    context: Context,
+    treeUri: Uri,
+    recursive: Boolean,
+    ignored: IgnoredPaths,
+): MarkdownTree<Uri> {
     val resolver = context.contentResolver
-    val tree = walkMarkdownTree(DocumentsContract.getTreeDocumentId(treeUri), recursive) { folderId ->
+    val tree = walkMarkdownTree(DocumentsContract.getTreeDocumentId(treeUri), recursive, ignored) { folderId ->
         val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(treeUri, folderId)
         resolver.query(childrenUri, PROJECTION, null, null, null)?.use { cursor ->
             buildList {
