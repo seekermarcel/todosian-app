@@ -122,7 +122,12 @@ class SafFileRepository(
 
     override fun getFolderUri(): Uri? = preferencesManager.getFolderUri()
 
-    private suspend fun includeSubfolders(): Boolean = appSettingsRepository.settings.first().includeSubfolders
+    private suspend fun scanFolder(folderUri: Uri): MarkdownTree<Uri> {
+        val settings = appSettingsRepository.settings.first()
+        return withContext(Dispatchers.IO) {
+            scanMarkdownTree(appContext, folderUri, settings.includeSubfolders, IgnoredPaths(settings.ignoredPaths))
+        }
+    }
 
     override fun isCategoryUri(uri: Uri): Boolean {
         val folderUri = getFolderUri() ?: return false
@@ -159,9 +164,8 @@ class SafFileRepository(
     override suspend fun getCategories(markers: TaskMarkers): Result<List<Category>> {
         val folderUri = getFolderUri() ?: return Result.success(emptyList())
         return withContext(Dispatchers.IO) {
-            val recursive = includeSubfolders()
             runCatching {
-                scanMarkdownTree(appContext, folderUri, recursive).files
+                scanFolder(folderUri).files
                     .asSequence()
                     .map { file ->
                         val displayName = file.relativePath
@@ -337,10 +341,7 @@ class SafFileRepository(
     }
 
     override suspend fun countMarkdownFiles(folderUri: Uri): Result<Int> {
-        val recursive = includeSubfolders()
-        return withContext(Dispatchers.IO) {
-            runCatching { scanMarkdownTree(appContext, folderUri, recursive).files.size }
-        }
+        return runCatching { scanFolder(folderUri).files.size }
     }
 
     override fun observeDocumentChanges(documentUri: Uri): Flow<Unit> {
@@ -366,7 +367,7 @@ class SafFileRepository(
             lateinit var observer: ContentObserver
 
             suspend fun currentMarkdownUris(): List<Pair<Uri, Boolean>> {
-                val tree = scanMarkdownTree(appContext, folderUri, includeSubfolders())
+                val tree = scanFolder(folderUri)
 
                 val uris = mutableListOf<Pair<Uri, Boolean>>()
                 // structural changes, in the selected folder and every scanned subfolder

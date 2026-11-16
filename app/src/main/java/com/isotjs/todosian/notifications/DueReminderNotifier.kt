@@ -16,6 +16,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import com.isotjs.todosian.MainActivity
 import com.isotjs.todosian.R
+import com.isotjs.todosian.data.IgnoredPaths
 import com.isotjs.todosian.data.MarkdownEntry
 import com.isotjs.todosian.data.PreferencesManager
 import com.isotjs.todosian.data.scanMarkdownTree
@@ -55,7 +56,13 @@ object DueReminderNotifier {
         val folderUri = PreferencesManager(appContext).getFolderUri()
             ?: return false
 
-        val dueSoon = runCatching { loadDueSoonTodos(appContext, folderUri, settings.toTaskMarkers(), settings.includeSubfolders) }
+        val dueSoon = runCatching { loadDueSoonTodos(
+                appContext,
+                folderUri,
+                settings.toTaskMarkers(),
+                settings.includeSubfolders,
+                IgnoredPaths(settings.ignoredPaths),
+            ) }
             .getOrElse { return false }
 
         if (dueSoon.isEmpty()) {
@@ -145,10 +152,11 @@ object DueReminderNotifier {
         folderUri: Uri,
         markers: TaskMarkers,
         includeSubfolders: Boolean,
+        ignored: IgnoredPaths,
     ): List<DueTodo> {
         val today = LocalDate.now()
 
-        return scanMarkdownTree(context, folderUri, includeSubfolders).files
+        return scanMarkdownTree(context, folderUri, includeSubfolders, ignored).files
             .asSequence()
             .flatMap { file ->
                 parseDueTodosFromFile(context, file, today, markers).asSequence()

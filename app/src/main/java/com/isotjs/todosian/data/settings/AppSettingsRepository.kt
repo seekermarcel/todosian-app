@@ -41,6 +41,8 @@ interface AppSettingsRepository {
 
     fun setIncludeSubfolders(enabled: Boolean)
 
+    fun setIgnoredPaths(patterns: String)
+
     fun setReminderTime(hour: Int, minute: Int)
 }
 
@@ -139,6 +141,10 @@ class SharedPrefsAppSettingsRepository(
         prefs.edit { putBoolean(KEY_INCLUDE_SUBFOLDERS, enabled) }
     }
 
+    override fun setIgnoredPaths(patterns: String) {
+        prefs.edit { putString(KEY_IGNORED_PATHS, patterns.trim()) }
+    }
+
     override fun setReminderTime(hour: Int, minute: Int) {
         prefs.edit {
             putInt(KEY_REMINDER_TIME_HOUR, hour)
@@ -188,6 +194,7 @@ class SharedPrefsAppSettingsRepository(
             recurrenceMarker = prefs.getString(KEY_RECURRENCE_MARKER, null)?.takeIf { it.isNotBlank() },
             enableSubtasks = prefs.getBoolean(KEY_SUBTASKS, false),
             includeSubfolders = prefs.getBoolean(KEY_INCLUDE_SUBFOLDERS, false),
+            ignoredPaths = prefs.getString(KEY_IGNORED_PATHS, null)?.takeIf { it.isNotBlank() },
             reminderTimeHour = prefs.getInt(KEY_REMINDER_TIME_HOUR, 19),
             reminderTimeMinute = prefs.getInt(KEY_REMINDER_TIME_MINUTE, 0),
         )
@@ -218,6 +225,7 @@ class SharedPrefsAppSettingsRepository(
 
         private const val KEY_SUBTASKS = "enable_subtasks"
         private const val KEY_INCLUDE_SUBFOLDERS = "include_subfolders"
+        private const val KEY_IGNORED_PATHS = "ignored_paths"
 
         private const val KEY_REMINDER_TIME_HOUR = "reminder_time_hour"
         private const val KEY_REMINDER_TIME_MINUTE = "reminder_time_minute"

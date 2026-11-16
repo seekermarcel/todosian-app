@@ -21,6 +21,7 @@ data class AppSettings(
     val recurrenceMarker: String? = null,
     val enableSubtasks: Boolean = false,
     val includeSubfolders: Boolean = false,
+    val ignoredPaths: String? = null,
     val reminderTimeHour: Int = 19,
     val reminderTimeMinute: Int = 0,
 ) {
