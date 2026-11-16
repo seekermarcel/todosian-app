@@ -1,40 +1,32 @@
 [
   {
-    "versionCode": 10,
-    "versionName": "2.2",
+    "versionCode": 1001,
+    "versionName": "2.2-fork.1",
     "items": [
       {
-        "icon": "Palette",
-        "title": "A Fresh Look",
-        "description": "Settings, onboarding, and empty screens share a calmer, more expressive design."
-      },
-      {
-        "icon": "Edit",
-        "title": "Your Own Task Markers",
-        "description": "Choose the text or emoji for dates, priority, and recurrence, still compatible with Obsidian Tasks."
+        "icon": "SubdirectoryArrowRight",
+        "title": "Whole Vault",
+        "description": "Optionally include notes in subfolders, shown by their path. Hidden folders like .obsidian are skipped."
       },
       {
         "icon": "Widgets",
-        "title": "Widgets Your Way",
-        "description": "Pick the list each widget shows, hide completed tasks, and see changes right away.",
-        "contributor": {
-          "name": "willl03",
-          "url": "https://github.com/willl03"
-        }
+        "title": "One-Tap Capture",
+        "description": "Pick a default file and the Add task widget opens it straight away."
+      },
+      {
+        "icon": "Checklist",
+        "title": "Custom Statuses",
+        "description": "Tasks like [/], [-] or [w] are shown, and you can set them with a long press."
+      },
+      {
+        "icon": "FilterCenterFocus",
+        "title": "Scheduled in Daily Focus",
+        "description": "Tasks scheduled for today or earlier now appear in Daily Focus."
       },
       {
         "icon": "BugReport",
-        "title": "Polish & Fixes",
-        "description": "Back gestures slide naturally, and a rare freeze from the floating button is fixed.",
-        "contributor": {
-          "name": "willl03",
-          "url": "https://github.com/willl03"
-        }
-      },
-      {
-        "icon": "Security",
-        "title": "Safer Note Links",
-        "description": "Notes opened from other apps or widgets are now validated before they are read."
+        "title": "Line Endings Kept",
+        "description": "Saving a note keeps its CRLF or LF line endings and its final newline."
       }
     ]
   }

@@ -1,0 +1,7 @@
+Todosian Fork, based on Todosian 2.2.
+
+• Whole vault: optionally include notes in subfolders, shown by their path
+• One-tap capture: the Add task widget can open a default file directly
+• Custom statuses: tasks like [/], [-] or [w] are shown and can be set by long press
+• Daily Focus includes tasks scheduled for today or earlier
+• Saving a note keeps its line endings and final newline
