@@ -16,10 +16,16 @@ It is designed to work with a folder that is synced to your phone (for example v
 <div align="center">
 <table>
   <tr>
-    <td align="center"><img src="fastlane/metadata/android/en-US/images/phoneScreenshots/1.jpeg" alt="Screenshot 1" width="200"></td>
-    <td align="center"><img src="fastlane/metadata/android/en-US/images/phoneScreenshots/2.jpeg" alt="Screenshot 2" width="200"></td>
-    <td align="center"><img src="fastlane/metadata/android/en-US/images/phoneScreenshots/3.jpeg" alt="Screenshot 3" width="200"></td>
-    <td align="center"><img src="fastlane/metadata/android/en-US/images/phoneScreenshots/4.jpeg" alt="Screenshot 4" width="200"></td>
+    <td align="center"><img src="docs/screenshots/1-today.png" alt="Today tab with overdue tasks and context filters" width="200"></td>
+    <td align="center"><img src="docs/screenshots/2-week.png" alt="Week tab grouped by day" width="200"></td>
+    <td align="center"><img src="docs/screenshots/3-lists.png" alt="Lists grouped by folder with note icons" width="200"></td>
+    <td align="center"><img src="docs/screenshots/4-repeat.png" alt="Repeat picker for a weekly task" width="200"></td>
+  </tr>
+  <tr>
+    <td align="center">Today</td>
+    <td align="center">Week</td>
+    <td align="center">Lists</td>
+    <td align="center">Repeat</td>
   </tr>
 </table>
 </div>
@@ -27,11 +33,14 @@ It is designed to work with a folder that is synced to your phone (for example v
 <h2 align="center">Features</h2>
 
 - **Folder-based setup** using Android Storage Access Framework (SAF) with persisted permissions.
-- Each Markdown file becomes a **category**.
+- Each Markdown file becomes a **list**; lists are grouped by folder and show the note's frontmatter `icon`. Notes without tasks are hidden, and notes with `status: Paused` fold away.
 - **Add / edit / toggle / delete** todos and **subtasks**.
-- **Create / rename / delete** categories (files).
-- (Optional) Support for **Obsidian Tasks plugin** metadata (dates, priority, recurrence).
-- **Daily Focus** view to see what's due today, overdue, or both.
+- **Create / rename / delete** lists (files).
+- (Optional) Support for **Obsidian Tasks plugin** metadata (dates, priority, recurrence, on-completion).
+- **Today, Week and Lists tabs** (with Tasks plugin support): today's and overdue tasks, the rest of the week by day, and all lists.
+- **Repeat picker** for recurring tasks, writing standard Obsidian Tasks rules.
+- **Contexts** from tags like `#context/home`: shown as labels, used as filters, and picked in the editor. The tag prefix is configurable.
+- **Custom statuses** like `[/]`, `[w]` or `[s]` with your own labels; long-press a task or its checkbox to change status.
 - Editable **due reminders** that fire once per day for tasks due soon.
 - Home screen **widgets**: a todo list with inline toggling and a quick-add widget.
 - Configurable **theme** (System / Light / Dark), Material 3 UI, and **dynamic color** (Android 12+).
@@ -59,6 +68,9 @@ Recognized suffix tokens:
 - Dates: `➕ YYYY-MM-DD` (created), `🛫 YYYY-MM-DD` (start), `⏳ YYYY-MM-DD` (scheduled), `📅 YYYY-MM-DD` (due), `✅ YYYY-MM-DD` (done)
 - Priority: `🔺` / `⏫` / `🔼` / `🔽` / `⏬`
 - Recurrence: `🔁 <text>`
+- On completion: `🏁 keep` / `🏁 delete` (delete removes the finished line, leaving the next occurrence)
+
+Tags between these tokens (e.g. `📅 2026-02-22 #context/home ➕ 2026-02-20`) are treated as part of the task text, as in Obsidian Tasks.
 
 Non-todo lines are preserved. The app only edits the specific todo lines you change.
 
@@ -66,7 +78,7 @@ Non-todo lines are preserved. The app only edits the specific todo lines you cha
 
 1. Sync (or copy) your Obsidian todo folder to your Android device (Syncthing works well).
 2. Open Todosian and select that folder when prompted.
-3. Tap a category (a `.md` file) to manage its todos. 
+3. With Tasks plugin support on, the app opens on **Today**; otherwise on your lists. Tap a list (a `.md` file) to manage its todos.
 
 <h2 align="center">Download Now</h2>
 
