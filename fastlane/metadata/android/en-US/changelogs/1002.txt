@@ -1,0 +1,4 @@
+Todosian Fork, based on Todosian 2.2.
+
+• Ignore folders and files: Settings → Storage → Ignored folders and files, with patterns like _templates/, Archive/ or *.excalidraw.md
+• Ignored folders are skipped entirely, which speeds up scanning large vaults

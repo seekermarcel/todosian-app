@@ -1,32 +1,17 @@
 [
   {
-    "versionCode": 1001,
-    "versionName": "2.2-fork.1",
+    "versionCode": 1002,
+    "versionName": "2.2-fork.2",
     "items": [
       {
-        "icon": "SubdirectoryArrowRight",
-        "title": "Whole Vault",
-        "description": "Optionally include notes in subfolders, shown by their path. Hidden folders like .obsidian are skipped."
-      },
-      {
-        "icon": "Widgets",
-        "title": "One-Tap Capture",
-        "description": "Pick a default file and the Add task widget opens it straight away."
-      },
-      {
-        "icon": "Checklist",
-        "title": "Custom Statuses",
-        "description": "Tasks like [/], [-] or [w] are shown, and you can set them with a long press."
-      },
-      {
         "icon": "FilterCenterFocus",
-        "title": "Scheduled in Daily Focus",
-        "description": "Tasks scheduled for today or earlier now appear in Daily Focus."
+        "title": "Ignore Folders and Files",
+        "description": "Settings → Storage → Ignored folders and files: hide templates, archives or drawings with simple patterns like _templates/ or *.excalidraw.md."
       },
       {
-        "icon": "BugReport",
-        "title": "Line Endings Kept",
-        "description": "Saving a note keeps its CRLF or LF line endings and its final newline."
+        "icon": "Speed",
+        "title": "Faster Scans",
+        "description": "Ignored folders are skipped entirely, so large archives no longer slow down loading."
       }
     ]
   }
