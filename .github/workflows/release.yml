@@ -47,6 +47,14 @@ jobs:
           chmod +x gradlew
           ./gradlew :app:assembleRelease --console=plain
 
+      - name: Verify APK signature
+        if: steps.secrets.outputs.present == 'true'
+        run: |
+          apksigner=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
+          "$apksigner" verify --print-certs app/build/outputs/apk/release/app-release.apk \
+            | grep -q "SHA-256 digest: 17bcf9ab86986be85ac05fad03fc8f001500e1026461a3d84827a9378682b1ec" \
+            || { echo "::error::APK is unsigned or signed with an unexpected key"; exit 1; }
+
       - name: Publish GitHub release
         if: steps.secrets.outputs.present == 'true' && startsWith(github.ref, 'refs/tags/')
         env:
