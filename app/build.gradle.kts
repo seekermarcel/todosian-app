@@ -15,11 +15,12 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.isotjs.todosian"
+        // Fork: own ID so it installs next to the F-Droid build; versionCode stays above upstream's.
+        applicationId = "com.isotjs.todosian.fork"
         minSdk = 30
         targetSdk = 37
-        versionCode = 10
-        versionName = "2.2"
+        versionCode = 1001
+        versionName = "2.2-fork.1"
     }
 
     val keystoreProperties = Properties().apply {

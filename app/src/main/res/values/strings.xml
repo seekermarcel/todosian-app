@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Todosian</string>
+    <string name="app_name">Todosian Fork</string>
 
     <!-- Onboarding -->
     <string name="onboarding_title">Connect your task folder</string>
